@@ -36,12 +36,13 @@ jobs:
       - name: 'Verify Pushed Tag'
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/tag-push-verify-action@f9c6e753870c6405883be2ba18af05d075aaffe8  # v0.1.0
+
         with:
           versioning: 'semver'
 
       - name: 'Promote draft release'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/draft-release-promote-action@0392844e1e08a0539b63ba1940a7a2bfa2bda077  # v0.1.1
+        uses: lfreleng-actions/draft-release-promote-action@d7e7df12e32fa26b28dbc2f18a12766482785399  # v0.1.2
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           tag: "${{ github.ref_name }}"
