@@ -2,36 +2,191 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
-# actions-template
-name: "🛠️ Actions Template"
-description: "Description of action"
-# Any relevant notes/observations can go here
+# yamllint disable rule:line-length
+
+# repository-content-action
+name: '🔍 Repository Content'
+description: 'Scans the repository for different content types and outputs the results'
 
 inputs:
-  input:
-    description: "Description of input"
-    required: true
+  github_summary:
+    description: 'Enable GitHub summary output'
+    required: false
+    type: boolean
+    default: 'false'
+  path_prefix:
+    description: 'Directory location containing project code'
+    required: false
+    type: string
+    default: '.'
 
 outputs:
-  output:
-    description: "Description of output"
-    value: ${{ steps.code.outputs.output }}
+  python_project:
+    # Scan for either: pyproject.toml | setup.py | Pipfile | requirements.txt
+    description: 'Repository contains a Python project'
+    value: "${{ steps.content.outputs.python_project }}"
+  go_project:
+    description: 'Repository contains a Go project with file: go.mod'
+    value: "${{ steps.content.outputs.go_project }}"
+  node_js_project:
+    description: 'Repository contains a Node.js project with file: package.json'
+    value: ${{ steps.content.outputs.node_js_project }}
+  maven_config:
+    description: 'Repository contains Maven project with file: pom.xml'
+    value: "${{ steps.content.outputs.maven_config }}"
+  gradel_config:
+    description: 'Repository contains Gradle project with file(s): settings.gradle*'
+    value: "${{ steps.content.outputs.gradle_config }}"
+  tox_config:
+    description: 'Repository contains a TOX configuration file: tox.ini'
+    value: "${{ steps.content.outputs.tox_config }}"
+  jupyter_notebooks:
+    description: 'Repository contains Jupyter Notebooks with file(s): *.ipynb'
+    value: "${{ steps.content.outputs.jupyter_notebooks }}"
+  makefile:
+    description: 'Repository contains: Makefile'
+    value: "${{ steps.content.outputs.makefile }}"
+  cmake_config:
+    description: 'Repository contains: CMakeLists.txt'
+    value: "${{ steps.content.outputs.cmake_config }}"
+  dockerfile:
+    description: 'Repository contains: Dockerfile'
+    value: "${{ steps.content.outputs.dockerfile }}"
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
-    - name: "Friendly Name"
-      id: code
+    - name: 'Check path_prefix is valid directory path'
       shell: bash
       run: |
-        # Friendly Name
-        input="${{ inputs.input }}"
-        if [ -z "$input" ]; then
-          echo "Error: mandatory input was not set/configured ❌"
-          exit 1
+        # Check path_prefix is valid directory path
+        if [ ! -d "${{ inputs.path_prefix }}" ]; then
+          echo 'Error: invalid path/prefix to project directory ❌'; exit 1
         fi
 
-        echo "output=$input" >> "$GITHUB_ENV"
-        echo "output=$input" >> "$GITHUB_OUTPUT"
-        echo "Action received: $input ✅"
-        echo "Action received: $input ✅" >> "$GITHUB_STEP_SUMMARY"
+    - name: 'Check repository content'
+      id: content
+      shell: bash
+      run: |
+        # Check repository content
+
+        echo "Checking repository content in: '${{ inputs.path_prefix }}'"
+        cd "${{ inputs.path_prefix }}"
+
+        # Always create a local text file containing the summary output
+        tmpfile=$(mktemp -p /tmp --suffix "github-summary-output.txt")
+        echo "tmpfile=$tmpfile" >> "$GITHUB_ENV"
+        # Check for Python project metadata files
+        if [ -f pyproject.toml ] || [ -f setup.py ] || \
+          [ -f Pipfile ] || [ -f requirements.txt ]; then
+          python_project="true"
+        else
+          python_project="false"
+        fi
+
+        # Check for Go module blueprint
+        if [ -f go.mod ]; then
+          go_project="true"
+        else
+          go_project="false"
+        fi
+
+        # Check for Node.JS package description
+        if [ -f package.json ]; then
+          node_js_project="true"
+        else
+          node_js_project="false"
+        fi
+
+        # Check for Maven: Project Object Model
+        if [ -f pom.xml ]; then
+          maven_config="true"
+        else
+          maven_config="false"
+        fi
+
+        # Check for Gradle settings files
+        gradle_count=$(find . -name 'settings.gradle*' | wc -l )
+        if [ "$gradle_count" -ne 0 ]; then
+          gradle_config="true"
+        else
+          gradle_config="false"
+        fi
+
+        # Check for TOX configuration
+        if [ -f tox.ini ]; then
+          tox_config="true"
+        else
+          tox_config="false"
+        fi
+
+        # Check for Jupyter Notebooks
+        notebook_count=$(find . -name '*.ipynb' | wc -l )
+        if [ "$notebook_count" -ne 0 ]; then
+          jupyter_notebooks="true"
+        else
+          jupyter_notebooks="false"
+        fi
+
+        if [ -f Makefile ]; then
+          makefile="true"
+        else
+          makefile="false"
+        fi
+
+        if [ -f CMakeLists.txt ]; then
+          cmake_config="true"
+        else
+          cmake_config="false"
+        fi
+
+        if [ -f Dockerfile ]; then
+          dockerfile="true"
+        else
+          dockerfile="false"
+        fi
+
+        ### Set Outputs ###
+
+        echo "python_project=$python_project" >> "$GITHUB_OUTPUT"
+        echo "go_project=$go_project" >> "$GITHUB_OUTPUT"
+        echo "node_js_project=$node_js_project" >> "$GITHUB_OUTPUT"
+        echo "maven_config=$maven_config" >> "$GITHUB_OUTPUT"
+        echo "gradle_config=$gradle_config" >> "$GITHUB_OUTPUT"
+        echo "tox_config=$tox_config" >> "$GITHUB_OUTPUT"
+        echo "jupyter_notebooks=$jupyter_notebooks" >> "$GITHUB_OUTPUT"
+        echo "makefile=$makefile" >> "$GITHUB_OUTPUT"
+        echo "cmake_config=$cmake_config" >> "$GITHUB_OUTPUT"
+        echo "dockerfile=$dockerfile" >> "$GITHUB_OUTPUT"
+
+        ### GitHub Summary ###
+
+        echo '# 🔍 Repository Content' >> "$tmpfile"
+        echo "Supported content types are listed in the table below" >> "$tmpfile"
+        echo "| Status | Content Type Found |" >> "$tmpfile"
+        echo "| -------- | ------- |" >> "$tmpfile"
+        echo "| $python_project | Python Project |" >> "$tmpfile"
+        echo "| $go_project | Go Project |" >> "$tmpfile"
+        echo "| $node_js_project | Node.js Project |" >> "$tmpfile"
+        echo "| $maven_config | Maven Configuration |" >> "$tmpfile"
+        echo "| $gradle_config | Gradle Configuration |" >> "$tmpfile"
+        echo "| $tox_config | Tox Configuration |" >> "$tmpfile"
+        echo "| $jupyter_notebooks | Jupyter Notebooks |" >> "$tmpfile"
+        echo "| $makefile | Makefile |" >> "$tmpfile"
+        echo "| $cmake_config | CMake Configuration |" >> "$tmpfile"
+        echo "| $dockerfile | Dockerfile |" >> "$tmpfile"
+
+        # Makes the displayed output/summary look pretty
+        sed -i 's/true/✅/g' "$tmpfile"
+        sed -i 's/false/❌/g' "$tmpfile"
+
+    - name: 'GitHub Summary Output'
+      if: ${{ inputs.github_summary == 'true' }}
+      shell: bash
+      run: |
+        cat "$tmpfile"  >> "$GITHUB_STEP_SUMMARY"
+
+    - name: 'Remove temporary report/file'
+      shell: bash
+      run: |
+        rm "${{ env.tmpfile }}"
