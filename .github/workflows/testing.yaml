@@ -58,22 +58,22 @@ jobs:
         shell: bash
         run: |
           # Validate Action Output
-          if [ "${{ steps.testing.outputs.python_project }}" \
+          if [ "${STEPS_TESTING_OUTPUTS_PYTHON_PROJECT}" \
             != 'true' ]; then
             echo 'Error: expected to find a Python project ❌'
-            echo "Returned: ${{ steps.testing.outputs.python_project }}"
+            echo "Returned: ${STEPS_TESTING_OUTPUTS_PYTHON_PROJECT}"
             echo 'Expected: true'
             errors='true'
-          elif [ "${{ steps.testing.outputs.tox_config }}" \
+          elif [ "${STEPS_TESTING_OUTPUTS_TOX_CONFIG}" \
             != 'true' ]; then
             echo 'Error: expected to find a TOX configuration ❌'
-            echo "Returned: ${{ steps.testing.outputs.tox_config }}"
+            echo "Returned: ${STEPS_TESTING_OUTPUTS_TOX_CONFIG}"
             echo 'Expected: true'
             errors='true'
-          elif [ "${{ steps.testing.outputs.jupyter_notebooks }}" \
+          elif [ "${STEPS_TESTING_OUTPUTS_JUPYTER_NOTEBOOKS}" \
             != 'true' ]; then
             echo 'Error: expected to find Jupyter Notebooks ❌'
-            echo "Returned: ${{ steps.testing.outputs.jupyter_notebooks }}"
+            echo "Returned: ${STEPS_TESTING_OUTPUTS_JUPYTER_NOTEBOOKS}"
             echo 'Expected: true'
             errors='true'
           fi
@@ -83,3 +83,10 @@ jobs:
           else
             echo 'Action validation passed ✅'
           fi
+        env:
+          # yamllint disable-line rule:line-length
+          STEPS_TESTING_OUTPUTS_PYTHON_PROJECT: ${{ steps.testing.outputs.python_project }}
+          # yamllint disable-line rule:line-length
+          STEPS_TESTING_OUTPUTS_TOX_CONFIG: ${{ steps.testing.outputs.tox_config }}
+          # yamllint disable-line rule:line-length
+          STEPS_TESTING_OUTPUTS_JUPYTER_NOTEBOOKS: ${{ steps.testing.outputs.jupyter_notebooks }}
